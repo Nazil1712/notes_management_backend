@@ -23,3 +23,15 @@ exports.createTask = async(req,res)=>{
         res.status(400).json(error)
     }
 }
+
+
+exports.deleteTask = async(req,res) => {
+    const {id} = req.params;
+
+    try{
+        const response = await Task.findByIdAndDelete(id)
+        res.status(200).json(response)
+    }catch(error) {
+        res.status(400).json(error)
+    }
+}
