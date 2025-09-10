@@ -35,3 +35,15 @@ exports.deleteTask = async(req,res) => {
         res.status(400).json(error)
     }
 }
+
+
+exports.updateTask = async(req,res) => {
+    const {id} = req.params;
+
+    try{
+        const response = await Task.findOneAndUpdate({_id:id},req.body,{new:true})
+        res.status(200).json(response)
+    }catch(error) {
+        res.status(400).json(error)
+    }
+}
