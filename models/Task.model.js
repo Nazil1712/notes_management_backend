@@ -10,11 +10,13 @@ const TaskSchema = new mongoose.Schema(
     views: { type: String, default: "0" }, 
     users: [{ type: String }], 
     description: { type: String }, 
+    images: [String],
     status: {
       type: String,
       enum: ["To Do", "In Progress", "Completed"], 
       default: "To Do",
     },
+    position: { type: Number, default: 0 },
   },
   {
     toJSON: {
