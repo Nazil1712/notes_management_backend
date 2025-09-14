@@ -11,11 +11,12 @@ exports.fetchAllTasks = async (req, res) => {
     const completedTasks = await Task.find({ status: "Completed" }).sort({
       position: 1,
     });
-    res.status(200).json([
+    const allTasks = await Task.find().sort({rowPosition:1})
+    res.status(200).json({kanbanView:[
       { id: "To Do", title: "To Do", tasks: toDoTasks },
       { id: "In Progress", title: "In Progress", tasks: inProgressTasks },
       { id: "Completed", title: "Completed", tasks: completedTasks },
-    ]);
+    ], rowView: allTasks});
   } catch (error) {
     res.status(400).json(error);
   }
