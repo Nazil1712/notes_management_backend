@@ -23,8 +23,10 @@ exports.fetchAllTasks = async (req, res) => {
 };
 
 exports.createTask = async (req, res) => {
+  // console.log(req.body)
+  
   try {
-    const count = await Task.countDocuments({ status: "To Do" });
+    const count = await Task.countDocuments({ status: req.body.status || "To Do" });
     const task = new Task({ ...req.body, position: count });
     const response = await task.save();
     // console.log(response)
@@ -38,8 +40,24 @@ exports.deleteTask = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const response = await Task.findByIdAndDelete(id);
-    res.status(200).json(response);
+    // 1. Find the task to delete
+    const taskToDelete = await Task.findById(id);
+    if (!taskToDelete) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    const { status, position } = taskToDelete;
+
+    // 2. Delete the task
+    await Task.findByIdAndDelete(id);
+
+    // 3. Decrement positions of tasks in the same status with position > deleted task's position
+    await Task.updateMany(
+      { status: status, position: { $gt: position } },
+      { $inc: { position: -1 } }
+    );
+
+    res.status(200).json({ data: {message: "Task deleted and positions updated", id: id }});
   } catch (error) {
     res.status(400).json(error);
   }
@@ -61,7 +79,7 @@ exports.updateTask = async (req, res) => {
 exports.reOrderTask = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(req.body)
+    // console.log(req.body)
     const { fromStatus, toStatus, newPosition, status } = req.body;
 
     const task = await Task.findById(id);
@@ -117,65 +135,3 @@ exports.reOrderTask = async (req, res) => {
     res.status(400).json(error);
   }
 };
-// exports.reOrderTask = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const { fromStatus, toStatus, newPosition } = req.body;
-
-//     const task = await Task.findById(id);
-//     if (!task) return res.status(404).send("Task not found");
-
-//     const oldStatus = task.status;
-//     const oldPosition = task.position;
-
-//     // Same column move
-//     if (fromStatus === toStatus) {
-//       if (oldPosition < newPosition) {
-//         await Task.updateMany(
-//           { status: fromStatus, position: { $gt: oldPosition, $lte: newPosition } },
-//           { $inc: { position: -1 } }
-//         );
-//       } else if (oldPosition > newPosition) {
-//         await Task.updateMany(
-//           { status: fromStatus, position: { $gte: newPosition, $lt: oldPosition } },
-//           { $inc: { position: 1 } }
-//         );
-//       }
-
-//       task.position = newPosition;
-//       await task.save();
-//     } else {
-//       // Shift tasks in old column
-//       await Task.updateMany(
-//         { status: fromStatus, position: { $gt: oldPosition } },
-//         { $inc: { position: -1 } }
-//       );
-
-//       // Shift tasks in new column
-//       await Task.updateMany(
-//         { status: toStatus, position: { $gte: newPosition } },
-//         { $inc: { position: 1 } }
-//       );
-
-//       task.status = toStatus;
-//       task.position = newPosition;
-//       await task.save();
-//     }
-
-//     // 🔹 Final normalization: reindex both affected columns
-//     const [fromTasks, toTasks] = await Promise.all([
-//       Task.find({ status: fromStatus }).sort("position"),
-//       Task.find({ status: toStatus }).sort("position"),
-//     ]);
-
-//     await Promise.all([
-//       ...fromTasks.map((t, idx) => Task.updateOne({ _id: t._id }, { position: idx })),
-//       ...toTasks.map((t, idx) => Task.updateOne({ _id: t._id }, { position: idx })),
-//     ]);
-
-//     res.json({ success: true });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(400).json({ error: error.message });
-//   }
-// };
