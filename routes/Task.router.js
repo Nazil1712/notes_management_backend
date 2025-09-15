@@ -1,5 +1,5 @@
 const express = require('express')
-const { fetchAllTasks, createTask, deleteTask, updateTask, reOrderTask } = require('../controllers/Task.controller')
+const { fetchAllTasks, createTask, deleteTask, updateTask, reOrderTask, updateRowPosition, reOrderRowPosition } = require('../controllers/Task.controller')
 const app = express()
 const router = express.Router()
 
@@ -10,5 +10,6 @@ router
     .delete('/:id',deleteTask)
     .patch('/update/:id',updateTask)
     .patch("/reorder/:id",reOrderTask)
+    .patch("/reorder-row-position/:id",reOrderRowPosition)
 
 module.exports = router

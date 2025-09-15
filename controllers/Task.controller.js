@@ -26,8 +26,13 @@ exports.createTask = async (req, res) => {
   // console.log(req.body)
   
   try {
-    const count = await Task.countDocuments({ status: req.body.status || "To Do" });
-    const task = new Task({ ...req.body, position: count });
+    
+    const count = await Task.countDocuments({ status: req.body.status || "To Do"});
+    const taskPosition = count;
+
+    await Task.updateMany({}, { $inc: { rowPosition: 1 } });
+
+    const task = new Task({ ...req.body, position: taskPosition, rowPosition:0});
     const response = await task.save();
     // console.log(response)
     res.status(201).json(response);
@@ -46,7 +51,7 @@ exports.deleteTask = async (req, res) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    const { status, position } = taskToDelete;
+    const { status, position, rowPosition } = taskToDelete;
 
     // 2. Delete the task
     await Task.findByIdAndDelete(id);
@@ -56,6 +61,13 @@ exports.deleteTask = async (req, res) => {
       { status: status, position: { $gt: position } },
       { $inc: { position: -1 } }
     );
+
+    // 4. Decrement rowPosition globally (row view ordering)
+    await Task.updateMany(
+      { rowPosition: { $gt: rowPosition } },
+      { $inc: { rowPosition: -1 } }
+    );
+
 
     res.status(200).json({ data: {message: "Task deleted and positions updated", id: id }});
   } catch (error) {
@@ -131,6 +143,35 @@ exports.reOrderTask = async (req, res) => {
 
       res.json({ success: true, moved: "across columns" });
     }
+  } catch (error) {
+    res.status(400).json(error);
+  }
+};
+
+exports.reOrderRowPosition = async (req, res) => {
+  try {
+    const {id} = req.params;
+    const { oldIndex, newIndex } = req.body;
+    console.log(id,req.body)
+
+    if (oldIndex < newIndex) {
+      // Moving DOWN
+      await Task.updateMany(
+        { rowPosition: { $gt: oldIndex, $lte: newIndex } },
+        { $inc: { rowPosition: -1 } }
+      );
+    } else if (oldIndex > newIndex) {
+      // Moving UP
+      await Task.updateMany(
+        { rowPosition: { $gte: newIndex, $lt: oldIndex } },
+        { $inc: { rowPosition: 1 } }
+      );
+    }
+
+    // Finally set the moved task's rowPosition to newIndex
+    await Task.findByIdAndUpdate(id, { rowPosition: newIndex });
+
+    res.status(200).json({ message: "Row positions updated successfully" });
   } catch (error) {
     res.status(400).json(error);
   }

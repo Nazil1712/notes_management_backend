@@ -17,6 +17,7 @@ const TaskSchema = new mongoose.Schema(
       default: "To Do",
     },
     position: { type: Number, default: 0 },
+    rowPosition: { type: Number, default: 0 },
   },
   {
     toJSON: {
