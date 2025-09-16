@@ -22,6 +22,10 @@ app.use(express.json());
 //Routes
 app.use("/api/tasks", taskRouter);
 
+app.get("/",(req,res)=>{
+  res.status(200).json({"ok":true})
+})
+
 async function main() {
   await mongoose.connect(process.env.MONGO_URL);
 }
